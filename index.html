@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Kamo Idiomas</title>
 <meta name="description" content="Practica idiomas con Kamo: habla, lee y escribe a tu nivel.">
-<meta name="theme-color" content="#f1f6f7" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0d181c" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e6f5df" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0b1d13" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png?v=2">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Kamo">
@@ -460,6 +460,13 @@ details.setup{border-width:2px;border-radius:14px}
 .pay-dev{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .pay-dev code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1.35rem;font-weight:800;letter-spacing:.08em;background:var(--bg);border:2px dashed var(--leaf);border-radius:12px;padding:6px 12px;color:var(--ink)}
 .pay textarea{width:100%;resize:vertical;background:var(--bg);border:2px solid var(--line);border-radius:14px;padding:10px 12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85rem;word-break:break-all}
+.mad{position:absolute;z-index:3;width:44px;height:44px;right:10%;top:-4%;animation:k-mad .5s ease-in-out infinite alternate;pointer-events:none}
+@keyframes k-mad{from{transform:scale(.85) rotate(-6deg)}to{transform:scale(1.15) rotate(6deg)}}
+.gate.grump .gate-k{animation:k-huff 1.6s ease-in-out infinite}
+@keyframes k-huff{0%,100%{transform:translateX(0)}10%,30%{transform:translateX(-3px)}20%,40%{transform:translateX(3px)}50%{transform:translateX(0)}}
+.walker .snooze.grumpy{height:186px;animation:k-huff 1.8s ease-in-out infinite}
+.walker .mad{right:6%;top:-6%}
+@media (prefers-reduced-motion: reduce){.mad,.gate.grump .gate-k,.snooze.grumpy{animation:none!important}}
 .gate .gate-w{position:relative;width:min(280px,74vw)}
 .gate-k{display:block;width:100%;border:0;background:none;padding:0;animation:k-breathe 3s ease-in-out infinite alternate}
 .gate-k img{display:block;width:100%;height:auto;filter:drop-shadow(0 10px 10px rgba(12,40,22,.28))}
@@ -972,6 +979,7 @@ const sfx={
   slurp:()=>hiss(.45,{from:2600,to:380,vol:.26,q:2.2}),
   gulp:()=>{ tone(380,.16,{to:140,vol:.26}); tone(190,.13,{to:330,at:.15,vol:.18}); },
   hi:()=>{ tone(784,.14,{vol:.16}); tone(1047,.22,{at:.12,vol:.16}); },
+  grr:()=>{ tone(150,.22,{to:110,type:"sawtooth",vol:.12}); tone(130,.3,{to:90,at:.2,type:"sawtooth",vol:.12}); },
   hello:()=>{ [[523,0],[659,.13],[784,.26],[1047,.42],[784,.6],[1047,.74]].forEach(([f,at])=>tone(f,.2,{at,vol:.2,type:"triangle"})); tone(1319,.5,{at:.9,vol:.14}); },
   begin:()=>{ tone(392,.12,{vol:.18,type:"triangle"}); tone(523,.12,{at:.11,vol:.18,type:"triangle"}); tone(784,.26,{at:.22,vol:.2,type:"triangle"}); },
   step:()=>{ tone(587,.1,{vol:.16}); tone(880,.2,{at:.09,vol:.16}); },
@@ -1001,11 +1009,13 @@ function perch(title, sub, state){
   l1.innerHTML='<path d="M4 116C6 60 40 14 112 6c-2 62-40 104-108 110z" fill="#1f7a3a"/><path d="M4 116C40 80 74 44 112 6" fill="none" stroke="#3fae5c" stroke-width="4" stroke-linecap="round"/><path d="M34 86l-2-30M58 62l-2-28M34 86l30 2M58 62l28 2" fill="none" stroke="#3fae5c" stroke-width="3" stroke-linecap="round"/>';
   const say=h("div","say"), sb=h("b",null,title), ss=h("span",null,sub||""); say.append(sb, ss);
   const tip=h("span","tapme","Toca a Kamo");
-  const w=btn("walker","",()=>{ if(w.dataset.asleep){ wake(); sb.textContent="¿Eh? ¡Ya desperté!"; ss.textContent="Vamos, que hoy sí practicamos."; } else lick(); });
+  const w=btn("walker","",()=>{ if(w.dataset.asleep){ const g=w.dataset.asleep==="g"; wake(); sb.textContent=g?"Está bien, te perdono.":"¿Eh? ¡Ya desperté!"; ss.textContent=g?"Pero hoy sí practicamos, ¿no?":"Vamos, que hoy sí practicamos."; } else lick(); });
   w.setAttribute("aria-label","Kamo. Tócalo.");
-  function wake(){ const was=w.dataset.asleep; delete w.dataset.asleep; w.textContent=""; const fr=frames("sway",["s0","s1","s2","s3"]); w.append(fr); sway(fr); if(was) sfx.yawn(); }
+  function wake(){ const was=w.dataset.asleep; delete w.dataset.asleep; w.textContent=""; const fr=frames("sway",["s0","s1","s2","s3"]); w.append(fr); sway(fr); if(was==="g") sfx.hi(); else if(was) sfx.yawn(); }
   if(state==="asleep"){
     w.dataset.asleep="1"; const im=h("img","snooze"); im.alt=""; im.src=SPR.sleep; const z=h("span","zzz"); z.append(h("i",null,"z"), h("i",null,"z"), h("i",null,"Z")); w.append(im, z);
+  }else if(state==="grumpy"){
+    w.dataset.asleep="g"; const im=h("img","snooze grumpy"); im.alt=""; im.src=SPR.think; w.append(im, madEl());
   }else if(state==="wave") w.append(kamoEl("loop","hi"));
   else wake();
   p.append(h("span","branch"), w, say, tip);
@@ -1016,13 +1026,17 @@ function flyEl(){
   const f=h("div","fly"), im=h("img"); im.src=SPR.fly; im.alt=""; f.setAttribute("aria-hidden","true"); f.append(im); return f;
 }
 // Puerta de entrada: un toque despierta a Kamo y enciende el sonido (sin toque, ningún celular deja sonar nada).
+const daysAway = () => { if(!P.day) return 0; const a=new Date(P.day+"T12:00:00"), b=new Date(today()+"T12:00:00"); const n=Math.round((b-a)/864e5); return n>0 ? n : 0; };
+const MAD='<svg class="mad" viewBox="0 0 40 40" aria-hidden="true"><path d="M8 16c5 0 8-3 8-8M32 16c-5 0-8-3-8-8M8 24c5 0 8 3 8 8M32 24c-5 0-8 3-8 8" fill="none" stroke="#e5352b" stroke-width="5" stroke-linecap="round"/></svg>';
+function madEl(){ const t=document.createElement("template"); t.innerHTML=MAD; return t.content.firstChild; }
 function startGate(){
-  const o=h("div","splash gate"), b=btn("gate-k","",()=>{}), im=h("img"); im.src=SPR.sleep; im.alt=""; b.append(im); b.setAttribute("aria-label","Despertar a Kamo y entrar");
+  const away=daysAway(), mad=away>=2;
+  const o=h("div","splash gate"+(mad?" grump":"")), b=btn("gate-k","",()=>{}), im=h("img"); im.src=mad?SPR.think:SPR.sleep; im.alt=""; b.append(im); b.setAttribute("aria-label","Despertar a Kamo y entrar");
   const z=h("div","gz"); z.setAttribute("aria-hidden","true"); for(let i=0;i<3;i++) z.append(h("i",null,"z"));
-  const wrap=h("div","gate-w"); wrap.append(z,b);
-  const t=h("div","sp-say"); t.append(h("b",null,"Kamo Idiomas"), h("span",null,"Shhh… Kamo está dormido."));
-  const go=()=>{ if(o.dataset.go) return; o.dataset.go="1"; unlockAudio(); o.remove(); welcomeIntro(()=>{}); };
-  b.onclick=go; o.append(jungleEl(), t, wrap, btn("primary big-btn gate-b","Toca para despertarlo",go)); document.body.append(o);
+  const wrap=h("div","gate-w"); wrap.append(mad?madEl():z,b);
+  const t=h("div","sp-say"); t.append(h("b",null,"Kamo Idiomas"), h("span",null, mad ? "Kamo está molesto: llevas "+away+" días sin venir." : away>=1 ? "Kamo se durmió esperándote." : "Shhh… Kamo está dormido."));
+  const go=()=>{ if(o.dataset.go) return; o.dataset.go="1"; unlockAudio(); if(mad) sfx.grr(); o.remove(); welcomeIntro(()=>{}); };
+  b.onclick=go; o.append(jungleEl(), t, wrap, btn("primary big-btn gate-b", mad?"Toca para contentarlo":"Toca para despertarlo",go)); document.body.append(o);
 }
 // Bienvenida: Kamo saluda, sigue una mosca con la mirada, se la come y saluda con la mano.
 function welcomeIntro(done){
@@ -1110,6 +1124,7 @@ function scrHome(box, H, go){
   const hr=new Date().getHours(), n=streakNow(), r=L(), ok=!!r.placed;
   const met=todayPts()>=P.goal, risk=!met && P.streak>0 && P.day===today(1), lost=!met && !!P.day && P.day<today(1);
   if(met) box.append(perch("¡Meta de hoy cumplida!", "Kamo duerme tranquilo. Mañana seguimos.", "asleep"));
+  else if(daysAway()>=2) box.append(perch("Kamo está molesto", "Llevas "+daysAway()+" días sin practicar. Una lección y se le pasa.", "grumpy"));
   else if(risk) box.append(perch("Kamo se durmió esperándote", "Practica hoy y salvas tu racha de "+P.streak+(P.streak===1?" día.":" días."), "asleep"));
   else if(lost) box.append(perch("Se nos fue la racha", "Despierta a Kamo con una práctica y empezamos otra.", "asleep"));
   else box.append(perch((hr<12?"¡Buenos días":hr<19?"¡Buenas tardes":"¡Buenas noches")+", "+P.name+"!", pick(PHRASES), "awake"));
