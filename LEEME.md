@@ -40,3 +40,11 @@ Esta carpeta es la app completa. No necesita servidor, clave ni pagos: los curso
 - Funciona igual en iPhone y Android. Los celulares solo dejan sonar una página después de un toque: por eso la app abre con Kamo dormido y un botón para despertarlo.
 - En iPhone suena aunque el interruptor lateral esté en silencio; solo hay que subir el volumen con los botones.
 - Se apaga o enciende en Personalizar, «Sonidos de la app».
+
+## Curso completo con código
+
+- El nivel A1 es gratis. De A2 a C1 se abre con un código que solo sirve en el celular del comprador.
+- El comprador ve su «número de equipo» en la app y te lo envía por WhatsApp. Tú creas el código con la página privada `kamo-codigos.html` y se lo respondes.
+- `kamo-codigos.html` NO va en este repositorio: guárdala solo en tus equipos.
+- Si el comprador cambia de celular, reinstala la app o borra los datos del navegador, su número cambia y necesita un código nuevo.
+- El link de pago y el precio se ponen en `index.html`, en la línea `const SHOP={…}` (campos `pay` y `price`).
