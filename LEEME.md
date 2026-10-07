@@ -4,7 +4,7 @@ Esta carpeta es la app completa. No necesita servidor, clave ni pagos: los curso
 
 ## Qué trae
 
-- Dos cursos para hispanohablantes, inglés y portugués de Brasil: 5 niveles (A1 a C1) y 60 lecciones cada uno. Cada idioma tiene su test inicial y guarda su avance por separado.
+- Dos cursos para hispanohablantes, inglés, portugués de Brasil e italiano: 5 niveles (A1 a C1) y 60 lecciones cada uno. Cada idioma tiene su test inicial y guarda su avance por separado.
 - Cada lección explica el tema, hace practicar (elegir, armar frases, escribir) y cierra con una comprobación.
 - Test inicial que ubica el nivel, prueba para subir de nivel y repaso espaciado de lo que se falla.
 - Kamo animado, sonidos y audio de los ejemplos con la voz del celular.
@@ -13,7 +13,7 @@ Esta carpeta es la app completa. No necesita servidor, clave ni pagos: los curso
 ## Qué no trae
 
 - Conversación libre, lecturas nuevas ni corrección de textos libres: eso necesita IA y sigue disponible en la versión dentro de Claude.
-- Otros idiomas: por ahora solo inglés y portugués. Se cambia de idioma en Personalizar.
+- Otros idiomas: por ahora inglés, portugués e italiano. Se cambia de idioma en Personalizar.
 - Al escribir, si faltan tildes la respuesta cuenta como buena y Kamo muestra la forma correcta.
 - Para actualizar una versión ya publicada: reemplaza todos los archivos del repositorio por los de esta carpeta; el avance guardado en el celular se conserva.
 
