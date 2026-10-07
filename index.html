@@ -691,6 +691,10 @@ const STANDALONE = !(window.claude && window.claude.use);
 // Instalada fuera de Claude no hay IA: todo sale del curso ya escrito.
 const NOAI = STANDALONE && !window.KAMO_API;
 const COURSE = () => { const c=window.KAMO_COURSE; return (c && c[P.cfg.target] && c[P.cfg.target][P.cfg.support]) || null; };
+// Android/Chrome avisa cuando la app se puede instalar de verdad; se guarda el aviso para ofrecer un botón.
+const INSTALL={ev:null};
+addEventListener("beforeinstallprompt", e=>{ e.preventDefault(); INSTALL.ev=e; try{ if(typeof scr!=="undefined" && scr==="home" && P.name && !$("home").hidden) showHome("home"); }catch(x){} });
+addEventListener("appinstalled", ()=>{ INSTALL.ev=null; });
 const TARGETS=["en","pt","it"], TLANGS=()=>TARGETS.map(k=>[k,LANGS[k].es]);
 if(NOAI) P.cfg.skill="lesson";
 function today(off){ const d=new Date(Date.now()-(off||0)*864e5); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
@@ -1198,7 +1202,24 @@ function scrHome(box, H, go){
     c.append(h("span","eyebrow",T().es), h("h2",null,"Primero descubrimos tu nivel"), h("p",null,"Kamo te hace unas preguntas cortas y arma tu plan desde tu nivel real."), btn("primary big-btn","Hacer mi test inicial",go(()=>{})));
   }
   box.append(c, btn("btn","Ver mi curso completo",()=>showHome("course")));
-  if(STANDALONE && !matchMedia("(display-mode: standalone)").matches && !navigator.standalone) box.append(h("p","hint","Para instalarla en tu celular, abre el menú Compartir del navegador y elige Agregar a pantalla de inicio."));
+  if(STANDALONE && !matchMedia("(display-mode: standalone)").matches && !navigator.standalone){
+    const ios=/iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==="MacIntel" && navigator.maxTouchPoints>1);
+    const ic=h("div","cont inst"), note=h("p","hint","");
+    ic.append(h("span","eyebrow","Instalar la app"));
+    if(INSTALL.ev){
+      ic.append(h("p",null,"Instala Kamo para abrirla a pantalla completa y usarla sin internet."), btn("primary big-btn","Instalar Kamo en este equipo", async e=>{
+        const b=e.currentTarget, ev=INSTALL.ev; if(!ev){ note.textContent="Abre el menú ⋮ de Chrome y elige «Instalar app»."; return; }
+        b.disabled=true; try{ ev.prompt(); const r=await ev.userChoice; INSTALL.ev=null; if(r && r.outcome==="accepted"){ ic.textContent=""; ic.append(h("p",null,"¡Listo! Busca el ícono de Kamo entre tus apps y ábrela desde ahí.")); return; } }catch(x){}
+        b.disabled=false; note.textContent="Si no se instaló, abre el menú ⋮ de Chrome y elige «Instalar app».";
+      }), note);
+    }else if(ios){
+      ic.append(h("p",null,"En iPhone o iPad: abre esta página en Safari, toca Compartir (el cuadro con la flecha) y elige «Agregar a inicio»."));
+    }else{
+      ic.append(h("p",null,"En Android: abre esta página en Chrome, toca el menú ⋮ y elige «Instalar app». Si solo aparece «Agregar a pantalla principal», elige «Instalar» en la ventana que se abre."),
+        h("p","hint","Si Chrome solo deja crear un acceso directo, revisa que no estés en modo incógnito, que Chrome esté actualizado y que hayas abierto el enlace en Chrome y no dentro de otra app."));
+    }
+    box.append(ic);
+  }
 }
 function coursePicker(){
   const o=h("div","sheet"), c=h("div","sheet-in"); o.setAttribute("role","dialog"); o.setAttribute("aria-modal","true"); o.setAttribute("aria-label","Elegir curso");
