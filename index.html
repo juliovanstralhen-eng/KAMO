@@ -467,6 +467,18 @@ details.setup{border-width:2px;border-radius:14px}
 .walker .snooze.grumpy{height:186px;animation:k-huff 1.8s ease-in-out infinite}
 .walker .mad{right:6%;top:-6%}
 @media (prefers-reduced-motion: reduce){.mad,.gate.grump .gate-k,.snooze.grumpy{animation:none!important}}
+.pp-ok{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;justify-content:flex-start;text-align:left;font-size:.92rem}
+.pp-ok input{order:-1;margin-right:4px}
+.ppv{justify-content:flex-start;padding:0;z-index:12}
+.pp-doc{width:100%;max-width:640px;height:100%;overflow:auto;padding:calc(20px + env(safe-area-inset-top,0px)) 20px calc(28px + env(safe-area-inset-bottom,0px));text-align:left;background:var(--surface)}
+.pp-doc h1{font-family:var(--display);font-size:1.7rem;line-height:1.1;margin:0 0 2px}
+.pp-doc h2{font-family:var(--display);font-size:1.15rem;margin:18px 0 6px}
+.pp-doc p{margin:0 0 8px;line-height:1.5}
+.pp-doc .big-btn{margin-top:14px;width:100%}
+.ppg{z-index:8;padding:20px}
+.ppg .cont{max-width:420px}
+.acct{display:flex;flex-direction:column;gap:10px}
+.acct input{width:100%;background:var(--bg);border:2px solid var(--line);border-radius:14px;padding:12px 14px;font-weight:700}
 .gate .gate-w{position:relative;width:min(280px,74vw)}
 .gate-k{display:block;width:100%;border:0;background:none;padding:0;animation:k-breathe 3s ease-in-out infinite alternate}
 .gate-k img{display:block;width:100%;height:auto;filter:drop-shadow(0 10px 10px rgba(12,40,22,.28))}
@@ -666,7 +678,7 @@ function merge(v){
   if(!TARGETS.includes(c.target)) c.target="en"; c.support="es"; if(!SCENES[c.scene]) c.scene="libre";
   if(!["lesson","mix","chat","read","write"].includes(c.skill)) c.skill="lesson";
   P = {cfg:c, langs:(v.langs && typeof v.langs==="object") ? v.langs : {}, t:v.t||0,
-       name:String(v.name||"").replace(/["\\\n\r]/g,"").slice(0,24), day:String(v.day||""), streak:v.streak|0, today:v.today|0, goal:[15,30,50].includes(v.goal)?v.goal:30};
+       name:String(v.name||"").replace(/["\\\n\r]/g,"").slice(0,24), day:String(v.day||""), streak:v.streak|0, today:v.today|0, goal:[15,30,50].includes(v.goal)?v.goal:30, codes:(v.codes && typeof v.codes==="object") ? v.codes : {}, pp:String(v.pp||"")};
 }
 try{ const v=JSON.parse(localStorage.getItem("kamo-progress")||"null"); if(v && v.cfg) merge(v); }catch(e){}
 function L(){
@@ -683,7 +695,7 @@ async function push(){
   saving=false;
   if(dirty){ dirty=false; push(); }
 }
-function save(){ P.t=Date.now(); try{ localStorage.setItem("kamo-progress", JSON.stringify(P)); }catch(e){} push(); }
+function save(){ P.t=Date.now(); try{ localStorage.setItem("kamo-progress", JSON.stringify(P)); }catch(e){} push(); if(typeof cloudLater==="function") cloudLater(); }
 function logTopic(topic, n){
   const k=String(topic||"").trim().toLowerCase().slice(0,60); if(!k) return;
   const t=L().topics; t[k]=(t[k]||0)+(n||1);
@@ -1112,13 +1124,20 @@ function scrWelcome(box, H){
   box.append(field("¿Cómo te llamo?",name)); box.append(field("Quiero aprender",t));
   let code=null;
   if(STANDALONE && !NOAI){ code=document.createElement("input"); code.id="homeCode"; code.type="text"; code.autocomplete="off"; code.value=getCode(); box.append(field("Código de invitación",code)); }
-  const err=h("p","note","");
+  const err=h("p","note",""), ppc=document.createElement("input"); ppc.id="ppOk";
+  box.append(ppLabel(ppc));
   box.append(btn("primary big-btn","Empezar",()=>{
     const n=name.value.trim().replace(/["\\]/g,"");
     if(!n){ err.textContent="Dime tu nombre para saludarte como se debe."; name.focus(); return; }
+    if(!ppc.checked){ err.textContent="Para empezar, marca que aceptas la Política de privacidad."; return; }
+    P.pp=PP_VER;
     P.name=n; P.cfg.target=t.value; P.cfg.support="es"; if(code) setCode(code.value.trim());
     save(); syncUI(); start(current(), false); showHome("home");
   }), err, h("p","hint","Después de esto viene un test corto para saber en qué nivel empiezas."));
+  if(cloudOn()){
+    const more=h("div","cont"); more.hidden=true; more.append(h("span","eyebrow","Entrar a mi cuenta"), accountForm(()=>{ if(P.name){ syncUI(); start(current(), false); showHome("home"); } else { more.hidden=true; err.textContent="Cuenta lista. Dime tu nombre y empezamos."; name.focus(); } }, {login:true, need:()=>ppc.checked}));
+    box.append(btn("btn","Ya tengo cuenta",e=>{ more.hidden=!more.hidden; if(!more.hidden) more.scrollIntoView({block:"center"}); }), more);
+  }
 }
 function scrHome(box, H, go){
   const hr=new Date().getHours(), n=streakNow(), r=L(), ok=!!r.placed;
@@ -1191,7 +1210,25 @@ function scrMe(box, H, go){
   const c2=h("div","cont"); c2.append(h("span","eyebrow","Tu práctica"), field("Meta diaria",gl)); if(!NOAI) c2.append(field("Escena favorita para conversar",sc));
   const tg=h("label","toggle", NOAI ? "Leer los ejemplos en voz alta al tocarlos" : "Kamo lee sus respuestas en voz alta"), cb=document.createElement("input"); cb.type="checkbox"; cb.id="meVoice"; cb.checked=!!P.cfg.voice; cb.onchange=()=>{ P.cfg.voice=cb.checked; syncUI(); save(); }; tg.append(cb); c2.append(tg);
   const tg2=h("label","toggle","Sonidos de la app"), cb2=document.createElement("input"); cb2.type="checkbox"; cb2.id="meSound"; cb2.checked=P.cfg.sound!==false; cb2.onchange=()=>{ P.cfg.sound=cb2.checked; save(); if(cb2.checked) sfx.ok(); }; tg2.append(cb2); c2.append(tg2); box.append(c2);
+  if(cloudOn()){
+    const ca=h("div","cont"); ca.append(h("span","eyebrow","Tu cuenta"));
+    if(AUTH){
+      const st=h("p","hint", cloudAt ? "Tu avance está guardado en la nube." : "Sincronizando…");
+      ca.append(h("p",null,AUTH.email), st, h("p","hint","Entra con este correo en tu tablet u otro celular y sigues donde ibas."));
+      const row=h("div","row"); row.append(btn("btn","Sincronizar ahora", async e=>{ const b=e.currentTarget; b.disabled=true; const r=await cloudSync(false); b.disabled=false; st.textContent = r==="net" ? "Sin conexión. Se sincroniza sola cuando vuelva el internet." : r==="out" ? "La sesión venció. Vuelve a entrar." : "Tu avance está guardado en la nube."; if(r==="out") showHome("me"); }), btn("btn","Cerrar sesión",()=>{ cloudOut(); showHome("me"); }));
+      ca.append(row);
+      const del=btn("link","Eliminar mi cuenta y mis datos de la nube", async ()=>{
+        if(!del.dataset.sure){ del.dataset.sure="1"; del.textContent="Toca otra vez para confirmar: se borra tu cuenta y tu avance de la nube"; return; }
+        del.disabled=true; try{ await cloudDelete(); showHome("me"); }catch(x){ st.textContent=(x && x.msg) || "No se pudo borrar. Intenta de nuevo."; del.disabled=false; }
+      });
+      ca.append(del);
+    }else{
+      ca.append(h("p","hint","Crea tu cuenta con tu correo: tu avance queda en la nube y lo ves en cualquier celular o tablet."), accountForm(()=>showHome("me")));
+    }
+    box.append(ca);
+  }
   const c3=h("div","cont"); c3.append(h("span","eyebrow","Tus idiomas"));
+  setTimeout(()=>{ if(box.isConnected) box.append(btn("link","Política de privacidad",policyView)); }, 0);
   const ul=h("ul","langs");
   for(const [k,v] of Object.entries(LANGS)){ const r=P.langs[k]; if(!r || !r.placed) continue; const li=h("li",null,v.es); li.append(h("span",null,LEVELS[Math.min(4,r.level|0)].code+" · "+(r.done|0)+" de 12 lecciones")); ul.append(li); }
   if(ul.children.length) c3.append(ul); else c3.append(h("p","hint","Todavía no has hecho el test inicial de ningún idioma."));
@@ -1395,6 +1432,131 @@ function orderQ(q, done){
   draw(); box.append(line,pool,check); return box;
 }
 
+/* ---------- política de privacidad ---------- */
+const PP_VER="2026-10-06";
+const POLICY=[["Quién responde por tus datos", ["Kamo Idiomas es un proyecto de Julio Chiquillo Vanstralhen, con domicilio en Bogotá, Colombia, quien actúa como responsable del tratamiento de los datos personales. Para cualquier consulta, solicitud o reclamo puedes escribir por WhatsApp al +57 301 257 2132.", "Esta política se rige por la Ley 1581 de 2012 y sus normas reglamentarias."]], ["Qué datos tratamos", ["El nombre o apodo que escribes para que Kamo te salude.", "Tu correo electrónico, solo si decides crear una cuenta. La contraseña la administra el servicio de autenticación de Google Firebase: nosotros no la vemos ni la guardamos.", "Tu avance de estudio: idioma, nivel, lecciones terminadas, resultados de ejercicios y pruebas, racha, meta diaria, preferencias y los ejercicios que debes repasar.", "Un número de equipo o de cuenta que la app genera para activar el curso completo, y el código de desbloqueo si lo compras.", "Si nos escribes por WhatsApp para comprar o pedir ayuda, tu número de teléfono, tu nombre de perfil y lo que nos cuentes en el mensaje.", "No pedimos ni tratamos datos sensibles, ubicación, contactos, fotos ni micrófono. La app no muestra publicidad ni usa herramientas de seguimiento publicitario."]], ["Para qué los usamos", ["Para que la app funcione: saludarte, ubicarte en tu nivel y recordar por dónde vas.", "Para guardar tu avance en la nube y mostrarlo en tus otros equipos, si creaste una cuenta.", "Para activar el curso completo y atender tu compra o tus solicitudes.", "Para responder consultas y reclamos, y cumplir obligaciones legales.", "No vendemos ni alquilamos tus datos, y no los usamos para enviarte publicidad de terceros."]], ["Dónde se guardan y quién más interviene", ["Si no creas cuenta, tu avance se guarda únicamente en tu equipo.", "Si creas cuenta, tu correo y tu avance se guardan en Google Firebase (Google LLC), en servidores que pueden estar fuera de Colombia. Al aceptar esta política autorizas esa transferencia internacional, necesaria para prestar el servicio.", "La app se publica a través de GitHub Pages y usa tipografías de Google Fonts; al abrirla, esos servicios pueden registrar datos técnicos como tu dirección IP. Las conversaciones por WhatsApp se rigen además por las condiciones de ese servicio.", "Estos proveedores actúan bajo sus propias políticas de privacidad y medidas de seguridad."]], ["Menores de edad", ["Si eres menor de 18 años, necesitas la autorización de tu madre, padre o representante legal para crear una cuenta o hacer una compra. Si creemos que un menor se registró sin esa autorización, podremos eliminar la cuenta."]], ["Tus derechos", ["Puedes conocer, actualizar y rectificar tus datos; pedir prueba de la autorización que nos diste; saber qué uso les hemos dado; revocar la autorización y pedir que los eliminemos; y acceder gratis a ellos.", "También puedes presentar una queja ante la Superintendencia de Industria y Comercio si consideras que incumplimos la ley, después de habernos consultado o reclamado."]], ["Cómo ejercerlos", ["Desde la app: en Personalizar puedes cambiar tu nombre, cerrar sesión y eliminar tu cuenta con todo lo guardado en la nube.", "Por WhatsApp al +57 301 257 2132, indicando tu nombre, el correo de tu cuenta y lo que solicitas. Respondemos las consultas en un máximo de diez (10) días hábiles y los reclamos en un máximo de quince (15) días hábiles."]], ["Cuánto tiempo los conservamos", ["Mientras tengas la cuenta activa o uses la app. Si eliminas tu cuenta, borramos tu correo y tu avance de la nube; lo guardado en tu equipo se borra al desinstalar la app o borrar los datos del navegador. Podemos conservar registros de compras el tiempo que exija la ley."]], ["Seguridad", ["La información viaja cifrada y cada cuenta solo puede leer y modificar sus propios datos. Ningún sistema es infalible: usa una contraseña que no repitas en otros sitios y avísanos si notas un acceso extraño."]], ["Cambios a esta política", ["Si cambiamos esta política de forma importante, la app te pedirá aceptarla de nuevo antes de continuar. Vigente desde el 6 de octubre de 2026."]]];
+function policyView(){
+  const o=h("div","splash ppv"), box=h("div","pp-doc");
+  box.append(h("h1",null,"Política de privacidad"), h("p","hint","Kamo Idiomas · Tratamiento de datos personales"));
+  for(const [t,ps] of POLICY){ box.append(h("h2",null,t)); for(const p of ps) box.append(h("p",null,p)); }
+  box.append(btn("primary big-btn","Cerrar",()=>o.remove()));
+  o.append(box); document.body.append(o); box.scrollTop=0;
+}
+function ppLabel(cb){
+  const l=h("label","toggle pp-ok",""); cb.type="checkbox"; l.append(cb, h("span",null,"He leído y acepto la "), btn("link","Política de privacidad",e=>{ e.preventDefault(); policyView(); }));
+  return l;
+}
+// Quien ya usaba la app (o entra con una cuenta antigua) la acepta una vez antes de seguir.
+function ppGate(){
+  if(!P.name || P.pp===PP_VER || document.querySelector(".ppg")) return;
+  const o=h("div","splash ppg"), c=h("div","cont"), cb=document.createElement("input"), err=h("p","note",""); cb.id="ppOk2";
+  c.append(h("span","eyebrow","Antes de seguir"), h("h2",null,"Tu privacidad"), h("p",null,"Kamo guarda tu nombre y tu avance para funcionar y, si creas una cuenta, tu correo y tu avance en la nube. No vendemos tus datos ni mostramos publicidad."), ppLabel(cb), err,
+    btn("primary big-btn","Continuar",()=>{ if(!cb.checked){ err.textContent="Marca la casilla para continuar."; return; } P.pp=PP_VER; save(); o.remove(); }));
+  o.append(jungleEl(), c); document.body.append(o);
+}
+
+/* ---------- cuenta en la nube: el avance viaja con el correo ---------- */
+// Datos del proyecto de Firebase (no son secretos). Sin ellos, la app funciona solo en este equipo.
+const CLOUD={apiKey:"AIzaSyBV0us_WljJItg9mNlBmiAROowPMf-MLGc", dbUrl:"https://kamo-37e54-default-rtdb.firebaseio.com"};
+const cloudOn = () => NOAI && !!(CLOUD.apiKey && CLOUD.dbUrl);
+let AUTH=null; try{ const a=JSON.parse(localStorage.getItem("kamo-auth")||"null"); if(a && a.uid && a.refresh) AUTH=a; }catch(e){}
+const CLOUD_ERR={EMAIL_EXISTS:"Ese correo ya tiene cuenta. Toca «Ya tengo cuenta» para entrar.", INVALID_LOGIN_CREDENTIALS:"El correo o la contraseña no coinciden.", INVALID_PASSWORD:"El correo o la contraseña no coinciden.", EMAIL_NOT_FOUND:"No hay una cuenta con ese correo.", INVALID_EMAIL:"Revisa el correo: no parece válido.", WEAK_PASSWORD:"La contraseña debe tener al menos 6 caracteres.", MISSING_PASSWORD:"Escribe tu contraseña.", TOO_MANY_ATTEMPTS_TRY_LATER:"Demasiados intentos. Espera unos minutos y prueba de nuevo.", USER_DISABLED:"Esta cuenta está desactivada."};
+function setAuth(a){ AUTH=a; try{ if(a) localStorage.setItem("kamo-auth", JSON.stringify(a)); else localStorage.removeItem("kamo-auth"); }catch(e){} }
+async function idCall(path, body){
+  const r=await fetch("https://identitytoolkit.googleapis.com/v1/accounts:"+path+"?key="+CLOUD.apiKey, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  const j=await r.json().catch(()=>({}));
+  if(!r.ok){ const code=String((j.error && j.error.message)||"").split(" ")[0]; throw {msg:CLOUD_ERR[code] || "No se pudo completar. Intenta de nuevo."}; }
+  return j;
+}
+async function token(){
+  if(!AUTH) return "";
+  if(AUTH.token && AUTH.exp>Date.now()+60000) return AUTH.token;
+  const r=await fetch("https://securetoken.googleapis.com/v1/token?key="+CLOUD.apiKey, {method:"POST", headers:{"Content-Type":"application/x-www-form-urlencoded"}, body:"grant_type=refresh_token&refresh_token="+encodeURIComponent(AUTH.refresh)});
+  if(r.status===400 || r.status===401 || r.status===403){ setAuth(null); return ""; }
+  if(!r.ok) throw {net:true};
+  const j=await r.json(); setAuth(Object.assign({}, AUTH, {token:j.id_token, refresh:j.refresh_token, exp:Date.now()+(Number(j.expires_in)||3600)*1000}));
+  return AUTH.token;
+}
+const docUrl = tk => CLOUD.dbUrl.replace(/\/+$/,"")+"/users/"+AUTH.uid+".json?auth="+encodeURIComponent(tk);
+async function cloudGet(){
+  const tk=await token(); if(!tk) return null;
+  const r=await fetch(docUrl(tk));
+  if(!r.ok) throw {net:true};
+  const j=await r.json(); if(!j || !j.data) return {none:true};
+  try{ const d=JSON.parse(j.data); return d && d.cfg ? {data:d} : {none:true}; }catch(e){ return {none:true}; }
+}
+let cloudBusy=false, cloudAgain=false, cloudTimer=0, cloudAt=0;
+async function cloudPut(keep){
+  if(!cloudOn() || !AUTH) return;
+  if(cloudBusy){ cloudAgain=true; return; }
+  cloudBusy=true;
+  try{
+    const tk=await token();
+    if(tk){ const r=await fetch(docUrl(tk), {method:"PUT", keepalive:!!keep, headers:{"Content-Type":"application/json"}, body:JSON.stringify({data:JSON.stringify(P), t:P.t||0, email:AUTH.email||""})}); if(r.ok) cloudAt=Date.now(); }
+  }catch(e){}
+  cloudBusy=false; if(cloudAgain){ cloudAgain=false; cloudPut(); }
+}
+function cloudLater(){ if(!cloudOn() || !AUTH) return; clearTimeout(cloudTimer); cloudTimer=setTimeout(cloudPut, 2500); }
+function adopt(d){
+  merge(JSON.parse(JSON.stringify(d))); try{ localStorage.setItem("kamo-progress", JSON.stringify(P)); }catch(e){}
+  syncUI(); ppGate(); refreshUnlock().then(()=>{ if(!touched || act==="lock") start(current(), false); if(!$("home").hidden) showHome(); });
+}
+// Al abrir o volver a la app: baja lo más nuevo o sube lo de este equipo.
+async function cloudSync(first){
+  if(!cloudOn() || !AUTH) return "off";
+  try{
+    const r=await cloudGet(); if(!r) return "out";
+    if(r.data && (first || (r.data.t||0)>(P.t||0))){ adopt(r.data); cloudAt=Date.now(); return "down"; }
+    if(P.name) await cloudPut();
+    return "up";
+  }catch(e){ return "net"; }
+}
+async function cloudEnter(mode, email, pass){
+  const j=await idCall(mode==="new"?"signUp":"signInWithPassword", {email, password:pass, returnSecureToken:true});
+  setAuth({uid:j.localId, email:j.email||email, token:j.idToken, refresh:j.refreshToken, exp:Date.now()+(Number(j.expiresIn)||3600)*1000});
+  // Cuenta nueva: sube lo de este equipo. Cuenta existente: manda lo que hay en la nube.
+  const r=await cloudGet().catch(()=>null);
+  if(r && r.data){ adopt(r.data); cloudAt=Date.now(); return "down"; }
+  if(P.name){ P.t=Date.now(); await cloudPut(); }
+  await refreshUnlock(); return "up";
+}
+function cloudOut(){ cloudPut(true); setAuth(null); refreshUnlock(); }
+async function cloudDelete(){
+  const tk=await token(); if(!tk) throw {msg:"La sesión venció. Vuelve a entrar y repite."};
+  const r=await fetch(docUrl(tk), {method:"DELETE"}); if(!r.ok) throw {msg:"No se pudo borrar. Revisa tu internet e intenta de nuevo."};
+  await idCall("delete", {idToken:tk}); clearTimeout(cloudTimer); setAuth(null); await refreshUnlock();
+}
+// Número corto de la cuenta, con la misma forma que el número de equipo.
+function accountId(){
+  if(!AUTH) return "";
+  const A="ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; let h1=0x811c9dc5, h2=0x1234567;
+  for(const ch of "kamo:"+AUTH.uid){ const c=ch.charCodeAt(0); h1=Math.imul(h1^c,16777619)>>>0; h2=Math.imul(h2+c,2654435761)>>>0; h2^=h2>>>13; }
+  let out=""; for(let i=0;i<4;i++){ out+=A[(h1>>>(i*5))&31]; } out+="-"; for(let i=0;i<4;i++){ out+=A[(h2>>>(i*5))&31]; }
+  return out;
+}
+function accountForm(onDone, opts){
+  opts=opts||{};
+  const c=h("div","acct"), em=document.createElement("input"), pw=document.createElement("input"), msg=h("p","note","");
+  em.type="email"; em.id="acctEmail"; em.autocomplete="email"; em.placeholder="tu@correo.com"; em.autocapitalize="off"; em.spellcheck=false;
+  pw.type="password"; pw.id="acctPass"; pw.autocomplete=opts.login?"current-password":"new-password"; pw.placeholder="Mínimo 6 caracteres";
+  const run=async(mode, b)=>{
+    const e=em.value.trim(), p=pw.value; msg.textContent="";
+    if(!e || !p){ msg.textContent="Escribe tu correo y una contraseña."; return; }
+    if(opts.need && !opts.need()){ msg.textContent="Primero marca que aceptas la Política de privacidad."; return; }
+    b.disabled=true; const old=b.textContent; b.textContent="Un momento…";
+    try{ const r=await cloudEnter(mode, e, p); sfx.ok(); onDone(r); }
+    catch(x){ msg.textContent=(x && x.msg) || "Sin conexión. Revisa tu internet e intenta de nuevo."; b.disabled=false; b.textContent=old; }
+  };
+  const mk=btn("primary big-btn","Crear mi cuenta",e=>run("new", e.currentTarget)), inb=btn(opts.login?"primary big-btn":"btn","Ya tengo cuenta: entrar",e=>run("in", e.currentTarget));
+  const fg=btn("link","Olvidé mi contraseña", async ()=>{ const e=em.value.trim(); if(!e){ msg.textContent="Escribe tu correo y vuelve a tocar aquí."; return; } try{ await idCall("sendOobCode",{requestType:"PASSWORD_RESET",email:e}); msg.textContent="Te enviamos un correo para cambiar la contraseña."; }catch(x){ msg.textContent=(x && x.msg) || "Sin conexión. Intenta de nuevo."; } });
+  c.append(field("Correo",em), field("Contraseña",pw)); if(opts.login) c.append(inb, mk); else c.append(mk, inb); c.append(msg, fg);
+  return c;
+}
+if(typeof document!=="undefined"){
+  document.addEventListener("visibilitychange", ()=>{ if(!cloudOn() || !AUTH) return; if(document.hidden){ clearTimeout(cloudTimer); cloudPut(true); } else cloudSync(false); });
+  addEventListener("online", ()=>{ cloudSync(false); });
+}
+
 /* ---------- curso completo: A1 libre, el resto con código por equipo ---------- */
 const SHOP={wa:"573012572132", pay:"", price:""};
 const PUBKEY={"key_ops": ["verify"], "ext": true, "kty": "EC", "x": "6M1lDH4kmSlsdihi2P53Vu8HaF8gOpr2FvECXgQjSpg", "y": "6qdIKATg2T3q5aBGx8iCc5z8vC-dtoB9iqMKHJh1m5w", "crv": "P-256"};
@@ -1413,32 +1575,33 @@ async function checkCode(code){
     const m=/^KAMO-(en|pt|all)-([A-Za-z0-9_-]{80,90})$/.exec(String(code||"").replace(/\s+/g,"")); if(!m || !window.crypto || !crypto.subtle) return "";
     const bin=atob(m[2].replace(/-/g,"+").replace(/_/g,"/")), sig=Uint8Array.from(bin, c=>c.charCodeAt(0));
     const key=await crypto.subtle.importKey("jwk", PUBKEY, {name:"ECDSA",namedCurve:"P-256"}, false, ["verify"]);
-    const ok=await crypto.subtle.verify({name:"ECDSA",hash:"SHA-256"}, key, sig, new TextEncoder().encode("KAMO1|"+deviceId()+"|"+m[1]));
-    return ok ? m[1] : "";
+    for(const id of [accountId(), deviceId()]){ if(id && await crypto.subtle.verify({name:"ECDSA",hash:"SHA-256"}, key, sig, new TextEncoder().encode("KAMO1|"+id+"|"+m[1]))) return m[1]; }
+    return "";
   }catch(e){ return ""; }
 }
 const unlockedNow = k => !!(UNL.all || UNL[k||P.cfg.target]);
 const locked = () => NOAI && L().level>=1 && !unlockedNow();
 function storedCodes(){ try{ const v=JSON.parse(localStorage.getItem("kamo-unlock")||"{}"); return v && typeof v==="object" ? v : {}; }catch(e){ return {}; } }
-const unlockReady=(async()=>{ const c=storedCodes(); for(const k of Object.keys(c)){ const w=await checkCode(c[k]); if(w) UNL[w]=true; } })();
+async function refreshUnlock(){ for(const k of Object.keys(UNL)) delete UNL[k]; for(const c of Object.values(storedCodes()).concat(Object.values(P.codes||{}))){ const w=await checkCode(c); if(w) UNL[w]=true; } }
+const unlockReady=refreshUnlock();
 function paywall(){
   act="lock"; clearStage(); composer(false); touched=true;
-  const r=L(), lang=T().es.toLowerCase(), dev=deviceId(), c=h("div","card pay");
+  const r=L(), lang=T().es.toLowerCase(), acc=accountId(), dev=acc||deviceId(), c=h("div","card pay");
   c.append(h("span","step","Curso completo"), h("h2",null,"Desbloquea todo el curso de "+lang));
   c.append(h("p",null, !(r.done|0) ? "Tu nivel es "+LV().code+". El nivel A1 es gratis para siempre; de A2 a C1 se abre con un solo pago, sin suscripción." : "¡Terminaste la parte gratis! De A2 a C1 hay 48 lecciones más, con sus pruebas de nivel y repasos. Se abre con un solo pago, sin suscripción."));
   const ol=h("ol","pay-steps");
   const s1=h("li"); s1.append(h("b",null,"Haz el pago"+(SHOP.price?" · "+SHOP.price:"")));
   if(SHOP.pay){ const a=h("a","primary big-btn","Pagar ahora"); a.href=SHOP.pay; a.target="_blank"; a.rel="noopener"; s1.append(a); } else s1.append(h("span",null,"Escríbenos por WhatsApp y te contamos cómo pagar."));
-  const s2=h("li"); s2.append(h("b",null,"Pide tu código"), h("span",null,"Este es el número de este celular. El código que recibas solo sirve aquí."));
+  const s2=h("li"); s2.append(h("b",null,"Pide tu código"), h("span",null, acc ? "Este es el número de tu cuenta. El código que recibas sirve en todos los equipos donde entres con tu correo." : cloudOn() ? "Este es el número de este equipo. Si primero creas tu cuenta en Personalizar, la compra te sirve en todos tus equipos." : "Este es el número de este celular. El código que recibas solo sirve aquí."));
   const dv=h("div","pay-dev"); dv.append(h("code",null,dev), btn("btn","Copiar",e=>{ try{ navigator.clipboard.writeText(dev); e.currentTarget.textContent="Copiado"; }catch(x){} })); s2.append(dv);
-  const wa=h("a","primary big-btn","Pedir mi código por WhatsApp"); wa.href="https://wa.me/"+SHOP.wa+"?text="+encodeURIComponent("Hola, quiero desbloquear Kamo ("+T().es+"). Mi número de equipo es "+dev+"."); wa.target="_blank"; wa.rel="noopener"; s2.append(wa);
+  const wa=h("a","primary big-btn","Pedir mi código por WhatsApp"); wa.href="https://wa.me/"+SHOP.wa+"?text="+encodeURIComponent("Hola, quiero desbloquear Kamo ("+T().es+"). Mi número de "+(acc?"cuenta":"equipo")+" es "+dev+"."); wa.target="_blank"; wa.rel="noopener"; s2.append(wa);
   const s3=h("li"); s3.append(h("b",null,"Pega tu código aquí"));
   const ta=document.createElement("textarea"); ta.id="payCode"; ta.rows=3; ta.placeholder="KAMO-…"; ta.autocapitalize="off"; ta.autocomplete="off"; ta.spellcheck=false; ta.setAttribute("aria-label","Código de desbloqueo");
   const msg=h("p","fb miss",""); msg.hidden=true;
   const ok=btn("primary big-btn","Activar", async ()=>{
     ok.disabled=true; const w=await checkCode(ta.value); ok.disabled=false;
     if(!w || (w!=="all" && w!==P.cfg.target)){ msg.hidden=false; msg.textContent = w ? "Ese código es de otro idioma. Cambia de idioma en Personalizar y actívalo allí." : "Ese código no coincide con este celular. Revisa que lo hayas copiado completo."; sfx.bad(); return; }
-    const all=storedCodes(); all[w]=ta.value.replace(/\s+/g,""); try{ localStorage.setItem("kamo-unlock", JSON.stringify(all)); }catch(e){}
+    const all=storedCodes(), clean=ta.value.replace(/\s+/g,""); all[w]=clean; try{ localStorage.setItem("kamo-unlock", JSON.stringify(all)); }catch(e){} P.codes=P.codes||{}; P.codes[w]=clean;
     UNL[w]=true; if((r.top|0)>r.level){ r.level=r.top; r.done=0; r.xp=0; } delete r.top; save(); syncUI();
     clearStage(); const d=h("div","card"); d.append(finale("party","¡Curso completo desbloqueado!","Gracias por apoyar a Kamo."), btn("primary big-btn","Seguir aprendiendo",()=>start("lesson",true))); $("stage").append(d); react("party","¡Todo el curso es tuyo!",5200); lick(confetti);
   });
@@ -2034,7 +2197,9 @@ if(NOAI) document.body.classList.add("noai");
 syncUI();
 start(current(), false);
 showHome();
+ppGate();
 startGate();
+cloudSync(false);
 unlockReady.then(()=>{ if(act==="lock" && !locked()) start(current(), false); });
 sampleReady = (async()=>{
   if(NOAI){ sample=null; return; }

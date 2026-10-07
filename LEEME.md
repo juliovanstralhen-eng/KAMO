@@ -48,3 +48,9 @@ Esta carpeta es la app completa. No necesita servidor, clave ni pagos: los curso
 - `kamo-codigos.html` NO va en este repositorio: guárdala solo en tus equipos.
 - Si el comprador cambia de celular, reinstala la app o borra los datos del navegador, su número cambia y necesita un código nuevo.
 - El link de pago y el precio se ponen en `index.html`, en la línea `const SHOP={…}` (campos `pay` y `price`).
+
+## Cuentas y avance en la nube
+
+- Con una cuenta (correo y contraseña) el avance se guarda en la nube y aparece en cualquier celular o tablet donde la persona entre.
+- Se activa poniendo los datos del proyecto de Firebase en `index.html`, en la línea `const CLOUD={…}` (apiKey y dirección de Realtime Database). Mientras estén vacíos, la app funciona solo en cada equipo.
+- Con cuenta, el código de desbloqueo se pide con el «número de cuenta» y sirve en todos los equipos de esa persona.
