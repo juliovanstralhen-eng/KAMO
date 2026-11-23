@@ -54,3 +54,14 @@ Esta carpeta es la app completa. No necesita servidor, clave ni pagos: los curso
 - Con una cuenta (correo y contraseña) el avance se guarda en la nube y aparece en cualquier celular o tablet donde la persona entre.
 - Se activa poniendo los datos del proyecto de Firebase en `index.html`, en la línea `const CLOUD={…}` (apiKey y dirección de Realtime Database). Mientras estén vacíos, la app funciona solo en cada equipo.
 - Con cuenta, el código de desbloqueo se pide con el «número de cuenta» y sirve en todos los equipos de esa persona.
+
+## Novedades de la versión 36
+
+- **Kamo Plus**: suscripción de COP 15.900 al mes con los 3 idiomas. Cada persona nueva tiene 7 días de prueba gratis con todo.
+- **Pago**: botón de pago en línea con Wompi, que se activa al publicar el servicio de pagos. Mientras tanto se paga por WhatsApp y se activa con un código.
+- **Licencias para colegios, empresas y municipios**: un código institucional activa Kamo Plus en cualquier equipo hasta la fecha pactada.
+- **Modo salón y familia**: varias personas en un mismo celular, cada una con su avance, más un reporte para el docente que se descarga para Excel o se imprime, protegido con PIN.
+- **Módulo Inglés para el aula**: 12 lecciones para docentes.
+- **Fichas imprimibles**: cada lección se imprime o se guarda en PDF, con las respuestas en una página aparte.
+- **Escucha**: ejercicios «Escucha y elige» y «Escucha y arma la frase» con la voz del celular, y modo manos libres para escuchar la lección completa.
+- **Accesibilidad**: opción de letra grande, recordatorio diario en el calendario y resumen corto de la política de privacidad.
